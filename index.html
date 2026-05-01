@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <title>WhatsApp Full Screen DP Setter | Set Edge-to-Edge Profile Picture Instantly</title>
+    <meta name="description" content="Set a stunning full-screen WhatsApp DP instantly. Upload your photo and get a professional edge-to-edge profile picture." />
+    <meta name="author" content="Bandaheali" />
+    <link rel="stylesheet" href="style.css" />
+    <!-- Socket.IO for real-time QR and backend connection -->
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Set Your WhatsApp Full Screen DP</h1>
+        <p class="description">
+            Want to stand out with a stylish full-screen DP? Just upload your photo and scan the QR code. We'll handle the rest.
+        </p>
+    </header>
+
+    <main>
+        <!-- QR Code Section (pehle dikhega) -->
+        <div id="qr-section">
+            <h2>Step 1: Link Your WhatsApp</h2>
+            <p>Open WhatsApp → <strong>Linked Devices</strong> → <strong>Link a Device</strong> → Scan QR:</p>
+            <img id="qr-image" src="" alt="QR Code" style="max-width: 300px;" />
+            <p id="qr-status">Waiting for scan...</p>
+        </div>
+
+        <!-- Main Form (original, initially hidden) -->
+        <form id="uploadForm" style="display: none;">
+            <button type="button" onclick="openModal()" aria-label="Information">ℹ️ Info</button>
+            <label for="imageInput">📸 Upload Image</label>
+            <input type="file" id="imageInput" accept="image/*" />
+            <label for="numberInput">📱 WhatsApp Number (for display only)</label>
+            <input type="text" id="numberInput" placeholder="e.g., 923xxxxxx567" disabled />
+            <div id="preview" class="preview-box"></div>
+            <button type="submit">🚀 Set My Full Screen DP</button>
+        </form>
+
+        <div id="result"></div>
+
+        <nav>
+            <a href="https://whatsapp.com/channel/0029VaDaBJGM2jS0z59S3s" target="_blank">Checkout other projects</a>
+        </nav>
+        <footer>
+            <p class="footer">Created With ❤️ </p>
+        </footer>
+    </main>
+
+    <!-- Info Modal -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">📌 Before You Start</h2>
+            <ul>
+                <li>📱 Open WhatsApp → Linked Devices → Link a Device → Scan the QR code shown above.</li>
+                <li>🖼️ Upload a high-quality vertical image (9:16 ratio is best).</li>
+                <li>🔐 Your data is never stored. Everything runs privately in real-time.</li>
+                <li>⚠️ Avoid repeated misuse — safe for normal use.</li>
+            </ul>
+            <button onclick="closeModal()">Got it!</button>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // ---- Modal Functions ----
+        function openModal() { document.getElementById('infoModal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('infoModal').style.display = 'none'; }
+
+        // ---- Socket.IO ----
+        const socket = io();
+        const qrSection = document.getElementById('qr-section');
+        const qrImage = document.getElementById('qr-image');
+        const qrStatus = document.getElementById('qr-status');
+        const uploadForm = document.getElementById('uploadForm');
+        const imageInput = document.getElementById('imageInput');
+        const previewBox = document.getElementById('preview');
+        const resultDiv = document.getElementById('result');
+
+        // Receive QR code from server
+        socket.on('qr', (imageData) => {
+            qrImage.src = imageData;
+            qrStatus.textContent = 'Scan this QR code with your WhatsApp.';
+            qrSection.style.display = 'block';
+            uploadForm.style.display = 'none';
+        });
+
+        // WhatsApp connected successfully
+        socket.on('ready', (ready) => {
+            if (ready) {
+                qrSection.style.display = 'none';
+                uploadForm.style.display = 'block';
+                resultDiv.innerHTML = '<p style="color: green;">Connected! Now upload a photo.</p>';
+            }
+        });
+
+        // Form submit → set DP
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const file = imageInput.files[0];
+            if (!file) {
+                resultDiv.innerHTML = '<p style="color: red;">Please select an image first.</p>';
+                return;
+            }
+            const formData = new FormData();
+            formData.append('photo', file);
+            resultDiv.innerHTML = '<p>Uploading...</p>';
+            try {
+                const resp = await fetch('/set-dp', { method: 'POST', body: formData });
+                const data = await resp.json();
+                resultDiv.innerHTML = data.success 
+                    ? '<p style="color: green;">' + data.message + '</p>'
+                    : '<p style="color: red;">' + (data.message || 'Error') + '</p>';
+            } catch (err) {
+                resultDiv.innerHTML = '<p style="color: red;">Network error.</p>';
+            }
+        });
+
+        // Image preview
+        imageInput.addEventListener('change', () => {
+            const file = imageInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => { previewBox.innerHTML = `<img src="${e.target.result}" style="max-width: 200px;" alt="Preview">`; };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>
